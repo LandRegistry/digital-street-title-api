@@ -1,0 +1,727 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Title API",
+    "version": "1.0.0",
+    "description": "HM Land Registry Digital Street Proof of Concept",
+    "contact": {
+      "name": "HM Land Registry"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "paths": {
+    "/titles": {
+      "get": {
+        "summary": "Retrieve a list of Titles",
+        "operationId": "get_titles",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "name": "owner_email_address",
+            "in": "query",
+            "required": true,
+            "description": "Owner email address",
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "example": "n.powell@example.com"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TitleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing 'owner_email_address' parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/titles/{title_number}": {
+      "get": {
+        "summary": "Retrieve a specific Title",
+        "operationId": "get_title",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A title with the specified title number was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update the Owner of Title",
+        "operationId": "update_title",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "requestBody": {
+          "description": "Title data to update",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TitleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The title is locked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A title with the specified title number was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Owner's email address is already in use.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/titles/{title_number}/lock": {
+      "put": {
+        "summary": "Lock a specific Title",
+        "operationId": "lock_title",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A title with the specified title number was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is already locked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/titles/{title_number}/unlock": {
+      "put": {
+        "summary": "Unlock a specific Title",
+        "operationId": "unlock_title",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A title with the specified title number was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The title is already unlocked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owners": {
+      "get": {
+        "summary": "Retrieve an Owner by email address",
+        "operationId": "get_owner",
+        "tags": [
+          "Owners"
+        ],
+        "parameters": [
+          {
+            "name": "email_address",
+            "in": "query",
+            "required": true,
+            "description": "Email address",
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "example": "n.powell@example.com"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Owner"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing 'email_address' parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conveyancers": {
+      "get": {
+        "summary": "Retrieve a list of Conveyancers",
+        "operationId": "get_conveyancers",
+        "tags": [
+          "Conveyancers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Conveyancer"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conveyancers/{conveyancer_id}": {
+      "get": {
+        "summary": "Retrieve a specific Conveyancer",
+        "operationId": "get_conveyancer",
+        "tags": [
+          "Conveyancers"
+        ],
+        "parameters": [
+          {
+            "name": "conveyancer_id",
+            "in": "path",
+            "required": true,
+            "description": "The unique ID of a Conveyancer",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conveyancer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A conveyancer with the specified conveyancer ID was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TitleRequest": {
+        "required": [
+          "owner"
+        ],
+        "properties": {
+          "owner": {
+            "$ref": "#/components/schemas/Owner"
+          }
+        }
+      },
+      "TitleResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TitleRequest"
+          }
+        ],
+        "required": [
+          "title_number",
+          "address",          
+          "locked_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "title_number": {
+            "type": "string",
+            "pattern": "^([A-Z]{0,3}[1-9][0-9]{0,5}|[0-9]{1,6}[ZT])$"
+          },
+          "address": {
+            "$ref": "#/components/schemas/TitleAddress"
+          },          
+          "locked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2018-11-07T10:25:29+00:00"
+          }
+        }
+      },
+      "Owner": {
+        "required": [
+          "identity",
+          "first_name",
+          "last_name",
+          "email_address",
+          "phone_number",
+          "type",
+          "address"
+        ],
+        "properties": {
+          "identity": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number to uniquely identify people across organisations"
+          },
+          "first_name": {
+            "type": "string",
+            "example": "Natasha"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Powell"
+          },
+          "email_address": {
+            "type": "string",
+            "format": "email",
+            "example": "n.powell@example.com"
+          },
+          "phone_number": {
+            "type": "string",
+            "example": "07700900123"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company",
+              "overseas company",
+              "non government organisation"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/OwnerAddress"
+          }
+        }
+      },
+      "TitleAddress": {
+        "required": [
+          "house_name_number",
+          "street",
+          "town_city",
+          "county",
+          "country",
+          "postcode"
+        ],
+        "properties": {
+          "house_name_number": {
+            "type": "string",
+            "example": 2
+          },
+          "street": {
+            "type": "string",
+            "example": "William Prance Road"
+          },
+          "town_city": {
+            "type": "string",
+            "example": "Plymouth"
+          },
+          "county": {
+            "type": "string",
+            "example": "Devon"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "England",
+              "Wales"
+            ]
+          },
+          "postcode": {
+            "type": "string",
+            "pattern": "^(GIR ?0AA|[A-PR-UWYZ]([0-9]{1,2}|([A-HK-Y][0-9]([0-9ABEHMNPRV-Y])?)|[0-9][A-HJKPS-UW]) ?[0-9][ABD-HJLNP-UW-Z]{2})$",
+            "example": "PL6 5WS"
+          }
+        }
+      },
+      "OwnerAddress": {
+        "required": [
+          "house_name_number",
+          "street",
+          "town_city",
+          "county",
+          "country",
+          "postcode"
+        ],
+        "properties": {
+          "house_name_number": {
+            "type": "string",
+            "example": 143
+          },
+          "street": {
+            "type": "string",
+            "example": "Cowgate"
+          },
+          "town_city": {
+            "type": "string",
+            "example": "Edinburgh"
+          },
+          "county": {
+            "type": "string",
+            "example": "Midlothian"
+          },
+          "country": {
+            "type": "string",
+            "example": "Scotland"
+          },
+          "postcode": {
+            "type": "string",
+            "example": "EH1 1JS"
+          }
+        }
+      },
+      "Conveyancer": {
+        "required": [
+          "conveyancer_id",
+          "x500",
+          "x500_string",
+          "company_name"
+        ],
+        "properties": {
+          "conveyancer_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          },
+          "x500": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "x500_string": {
+            "type": "string",
+            "example": "O=Conveyit4u,L=Plymouth,C=GB"
+          },
+          "company_name": {
+            "type": "string",
+            "example": "Conveyit4u"
+          }
+        }
+      },
+      "X500": {
+        "type": "object",
+        "required": [
+          "organisation",
+          "locality",
+          "country"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "organisation": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Conveyit4u"
+          },
+          "locality": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,62}\\S)$",
+            "example": "Plymouth"
+          },
+          "country": {
+            "type": "string",
+            "pattern": "^([A-Z]{2})$",
+            "example": "GB"
+          },
+          "state": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Devon"
+          },
+          "organisational_unit": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Digital"
+          },
+          "common_name": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Conveyit4u"
+          }
+        }
+      },
+      "Error": {
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "TitleNumber": {
+        "name": "title_number",
+        "in": "path",
+        "required": true,
+        "description": "The unique ID of a Title",
+        "schema": {
+          "type": "string",
+          "pattern": "^([A-Z]{0,3}[1-9][0-9]{0,5}|[0-9]{1,6}[ZT])$"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+coverage==4.5.2
+flake8==3.6.0
+hacking==1.1.0
+pep8-naming==0.7.0
+pip-tools==3.1.0
+piprot==0.9.10
+pytest-cov==2.6.0
+pytest==4.0.0
+safety==1.8.4
+# Generated with piprot 0.9.10
+# Looks like you've been keeping up to date, time for a delicious beverage!
