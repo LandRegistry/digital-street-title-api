@@ -2,7 +2,7 @@ import json
 import traceback
 
 from flask import Response, current_app
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, NotAcceptable
 
 
 class ApplicationError(Exception):
@@ -42,6 +42,13 @@ def not_found_error(e):
         "error_message": "Not Found", "error_code": "404"}
 
     return Response(response=json.dumps(response_dict, separators=(',', ':')), mimetype='application/json', status=404)
+
+
+def not_acceptable_error(e):
+    response_dict = {
+        "error_message": "Not Acceptable", "error_code": "406"}
+
+    return Response(response=json.dumps(response_dict, separators=(',', ':')), mimetype='application/json', status=406)
 
 
 def unhandled_exception(e):
@@ -95,5 +102,6 @@ def register_exception_handlers(app):
     app.register_error_handler(ApplicationError, application_error)
     app.register_error_handler(Exception, unhandled_exception)
     app.register_error_handler(NotFound, not_found_error)
+    app.register_error_handler(NotAcceptable, not_acceptable_error)
 
     app.logger.info("Exception handlers registered")

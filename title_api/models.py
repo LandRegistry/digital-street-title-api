@@ -19,9 +19,11 @@ class Title(db.Model):
 
     # Relationships
     owner = db.relationship("Owner", backref=db.backref('title', lazy='dynamic'),
-                            foreign_keys='Title.owner_identity', uselist=False)
+                            foreign_keys='Title.owner_identity', uselist=False, cascade="save-update")
     address = db.relationship("Address", backref=db.backref('title', lazy='dynamic'),
-                              foreign_keys='Title.address_id', uselist=False, cascade="all")
+                              foreign_keys='Title.address_id', uselist=False, cascade="save-update")
+    restrictions = db.relationship("Restriction", back_populates="title", cascade="all, delete-orphan")
+    charges = db.relationship("Charge", back_populates="title", cascade="all, delete-orphan")
 
     # Methods
     def __init__(self, title_number, owner, address):
@@ -34,10 +36,24 @@ class Title(db.Model):
         return json.dumps(self.as_dict(), sort_keys=True, separators=(',', ':'))
 
     def as_dict(self):
+        restrictions_dict = [r.as_dict() for r in self.restrictions]
+
+        charges_dict = []
+        for charge in self.charges:
+            if charge.restriction is None:
+                charges_dict.append(charge.as_dict())
+
+        restriction_consenting_parties_dict = []
+        for restriction in self.restrictions:
+            restriction_consenting_parties_dict.append(X500Name.from_string(restriction.consenting_party).as_dict())
+
         return {
             "title_number": self.title_number,
             "owner": self.owner.as_dict(),
             "address": self.address.as_dict(),
+            "restrictions": restrictions_dict,
+            "charges": charges_dict,
+            "restriction_consenting_parties": restriction_consenting_parties_dict,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat() if self.updated_at else self.updated_at,
             "locked_at": self.lock.isoformat() if self.lock else self.lock
@@ -129,8 +145,8 @@ class Conveyancer(db.Model):
     company_name = db.Column(db.String, nullable=False)
 
     # Methods
-    def __init__(self, x500_name, company_name):
-        self.x500_name = str(x500_name)
+    def __init__(self, x500_name_string, company_name):
+        self.x500_name = str(X500Name.from_string(x500_name_string))
         self.company_name = company_name
 
     def __repr__(self):
@@ -278,4 +294,122 @@ class X500Name(object):
             "state": self.state,
             "organisational_unit": self.organisational_unit,
             "common_name": self.common_name,
+        }
+
+
+class Restriction(db.Model):
+    """Class representation of a Restriction."""
+    __tablename__ = 'restriction'
+
+    # Fields
+    restriction_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    restriction_code = db.Column(db.String, nullable=False)
+    restriction_type = db.Column(db.String, nullable=False)
+    restriction_text = db.Column(db.String, nullable=False)
+    consenting_party = db.Column(db.String, nullable=False)
+    restriction_date = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    title_number = db.Column(db.String, db.ForeignKey('title.title_number'))
+    charge_id = db.Column(db.Integer,
+                          db.ForeignKey('charge.charge_id', ondelete="CASCADE", onupdate="CASCADE"),
+                          nullable=True)
+
+    # Relationships
+    title = db.relationship("Title", back_populates="restrictions")
+    charge = db.relationship("Charge", back_populates="restriction", uselist=False)
+
+    # Methods
+    def __init__(self, date, restriction_code, restriction_type, restriction_text, consenting_party, title_number):
+        self.restriction_code = restriction_code.upper()
+        self.restriction_type = restriction_type.upper()
+        self.restriction_text = restriction_text
+        if isinstance(consenting_party, dict):
+            self.consenting_party = str(X500Name.from_dict(consenting_party))
+        else:
+            self.consenting_party = str(X500Name.from_string(consenting_party))
+        self.restriction_date = datetime.now()  # date,  # TODO(parse to datetime)
+        self.title_number = title_number
+
+    @staticmethod
+    def from_dict(dict_obj, title_number):
+        r_code = dict_obj['restriction_id']
+        r_type = dict_obj['restriction_type']
+        r_text = dict_obj['restriction_text']
+        r_date = dict_obj['date']
+        if 'consenting_party_string' in dict_obj:
+            consenting_party = str(X500Name.from_string(dict_obj['consenting_party_string']))
+        else:
+            consenting_party = str(X500Name.from_dict(dict_obj['consenting_party']))
+
+        restriction = Restriction(r_date, r_code, r_type, r_text, consenting_party, title_number)
+
+        if 'charge' in dict_obj and dict_obj['charge']:
+            restriction.charge = Charge.from_dict(dict_obj['charge'], title_number)
+
+        return restriction
+
+    def __repr__(self):
+        return json.dumps(self.as_dict(), sort_keys=True, separators=(',', ':'))
+
+    def as_dict(self):
+        return {
+            "restriction_id": self.restriction_code,
+            "restriction_type": self.restriction_type,
+            "restriction_text": self.restriction_text,
+            "consenting_party": X500Name.from_string(self.consenting_party).as_dict(),
+            "consenting_party_string": str(X500Name.from_string(self.consenting_party)),
+            "date": self.restriction_date.isoformat(),
+            "charge": self.charge.as_dict() if self.charge else None
+        }
+
+
+class Charge(db.Model):
+    """Class representation of a Charge."""
+    __tablename__ = 'charge'
+
+    # Fields
+    charge_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    charge_date = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    charge_lender = db.Column(db.String, nullable=False)
+    charge_amount = db.Column(db.Float, nullable=False)
+    charge_currency_type = db.Column(db.String, nullable=False)
+    title_number = db.Column(db.String, db.ForeignKey('title.title_number'))
+    # restriction_id = db.Column(db.String, db.ForeignKey('restriction.restriction_id'), nullable=True)
+
+    # Relationships
+    title = db.relationship("Title", back_populates="charges")
+    restriction = db.relationship("Restriction", back_populates="charge", uselist=False)
+
+    # Methods
+    def __init__(self, charge_date, charge_lender, charge_amount, charge_currency_type, title_number):
+        self.charge_date = datetime.now()  # charge_date  # TODO(parse to datetime)
+        if isinstance(charge_lender, dict):
+            self.charge_lender = str(X500Name.from_dict(charge_lender))
+        else:
+            self.charge_lender = str(X500Name.from_string(charge_lender))
+        self.charge_amount = float(charge_amount)
+        self.charge_currency_type = charge_currency_type.upper()
+        self.title_number = title_number
+
+    @staticmethod
+    def from_dict(dict_obj, title_number):
+        date = dict_obj['date']
+        if 'lender_string' in dict_obj:
+            lender = str(X500Name.from_string(dict_obj['lender_string']))
+        else:
+            lender = str(X500Name.from_dict(dict_obj['lender']))
+        amount = dict_obj['amount']
+        amount_currency_code = dict_obj.get('amount_currency_code')
+
+        return Charge(date, lender, amount, amount_currency_code, title_number)
+
+    def __repr__(self):
+        return json.dumps(self.as_dict(), sort_keys=True, separators=(',', ':'))
+
+    def as_dict(self):
+        return {
+            "date": self.charge_date.isoformat(),
+            "lender": X500Name.from_string(self.charge_lender).as_dict(),
+            "lender_string": str(X500Name.from_string(self.charge_lender)),
+            "amount": self.charge_amount,
+            "amount_currency_code": self.charge_currency_type
         }

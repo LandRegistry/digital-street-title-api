@@ -2,7 +2,7 @@
   "openapi": "3.0.2",
   "info": {
     "title": "Title API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "HM Land Registry Digital Street Proof of Concept",
     "contact": {
       "name": "HM Land Registry"
@@ -17,6 +17,7 @@
       "get": {
         "summary": "Retrieve a list of Titles",
         "operationId": "get_titles",
+        "description": "Must use `owner_identity` or `owner_email_address` query parameters. Guaranteed 1 result when using `address_house_name_number`, `address_postcode` and either `owner_identity` or `owner_email_address` query parameters.\n",
         "tags": [
           "Titles"
         ],
@@ -24,12 +25,33 @@
           {
             "name": "owner_email_address",
             "in": "query",
-            "required": true,
-            "description": "Owner email address",
+            "description": "The owner's email address. Must be used either by itself or with `address_house_name_number` and `address_postcode`.\n",
             "schema": {
-              "type": "string",
-              "format": "email",
-              "example": "n.powell@example.com"
+              "$ref": "#/components/schemas/Owner/properties/email_address"
+            }
+          },
+          {
+            "name": "owner_identity",
+            "in": "query",
+            "description": "The owner's identity. Must be used either by itself or with `address_house_name_number` and `address_postcode`.\n",
+            "schema": {
+              "$ref": "#/components/schemas/Owner/properties/identity"
+            }
+          },
+          {
+            "name": "address_house_name_number",
+            "in": "query",
+            "description": "The address's house name or house number. Must be used together with `address_postcode` and either `owner_identity` or `owner_email_address`.\n",
+            "schema": {
+              "$ref": "#/components/schemas/TitleAddress/properties/house_name_number"
+            }
+          },
+          {
+            "name": "address_postcode",
+            "in": "query",
+            "description": "The address's postcode. Must be used together with `address_house_name_number` and either `owner_identity` or `owner_email_address`.\n",
+            "schema": {
+              "$ref": "#/components/schemas/TitleAddress/properties/postcode"
             }
           }
         ],
@@ -116,7 +138,7 @@
         }
       },
       "put": {
-        "summary": "Update the Owner of Title",
+        "summary": "Update the Owner, Charges, Restrictions and Charge Lender of a Title",
         "operationId": "update_title",
         "tags": [
           "Titles"
@@ -462,11 +484,32 @@
     "schemas": {
       "TitleRequest": {
         "required": [
-          "owner"
+          "owner",
+          "charges",
+          "restrictions"
         ],
         "properties": {
           "owner": {
             "$ref": "#/components/schemas/Owner"
+          },
+          "charges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Charge"
+            }
+          },
+          "restrictions": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Restriction"
+                },
+                {
+                  "$ref": "#/components/schemas/ChargeRestriction"
+                }
+              ]
+            }
           }
         }
       },
@@ -478,10 +521,11 @@
         ],
         "required": [
           "title_number",
-          "address",          
+          "address",
           "locked_at",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "restriction_consenting_parties"
         ],
         "properties": {
           "title_number": {
@@ -490,7 +534,13 @@
           },
           "address": {
             "$ref": "#/components/schemas/TitleAddress"
-          },          
+          },
+          "restriction_consenting_parties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/X500"
+            }
+          },
           "locked_at": {
             "type": "string",
             "format": "date-time",
@@ -697,6 +747,121 @@
             "type": "string",
             "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
             "example": "Conveyit4u"
+          }
+        }
+      },
+      "Charge": {
+        "required": [
+          "date",
+          "lender",
+          "amount",
+          "amount_currency_code"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "lender": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 124999.99
+          },
+          "amount_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
+          }
+        }
+      },
+      "RestrictionType": {
+        "required": [
+          "restriction_type"
+        ],
+        "properties": {
+          "restriction_type": {
+            "type": "string",
+            "enum": [
+              "ORES",
+              "CBCR"
+            ],
+            "example": "CBCR"
+          }
+        },
+        "discriminator": {
+          "propertyName": "restriction_type",
+          "mapping": {
+            "ORES": "Restriction",
+            "CBCR": "ChargeRestriction"
+          }
+        }
+      },
+      "RestrictionBase": {
+        "required": [
+          "restriction_id",
+          "restriction_text",
+          "consenting_party",
+          "date"
+        ],
+        "properties": {
+          "restriction_id": {
+            "type": "string"
+          },
+          "restriction_text": {
+            "type": "string",
+            "example": "A string of text containing infills. This restriction is of type **RT** and was created at **RD**."
+          },
+          "consenting_party": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "signed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "add",
+                "remove"
+              ]
+            },
+            "readOnly": true,
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          }
+        }
+      },
+      "Restriction": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RestrictionType"
+          },
+          {
+            "$ref": "#/components/schemas/RestrictionBase"
+          }
+        ]
+      },
+      "ChargeRestriction": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RestrictionType"
+          },
+          {
+            "$ref": "#/components/schemas/RestrictionBase"
+          }
+        ],
+        "required": [
+          "charge"
+        ],
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/Charge"
           }
         }
       },

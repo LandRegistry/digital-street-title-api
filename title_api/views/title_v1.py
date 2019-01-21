@@ -1,13 +1,12 @@
 import datetime
 import json
-
 from flask import Blueprint, Response, current_app, request
 from flask_negotiate import consumes, produces
 from jsonschema import FormatChecker, RefResolver, ValidationError, validate
 from sqlalchemy import exc
 from title_api.exceptions import ApplicationError
 from title_api.extensions import db
-from title_api.models import Address, Owner, Title
+from title_api.models import Address, Owner, Title, Charge, Restriction
 
 # This is the blueprint object that gets registered into the app in blueprints.py.
 title_v1 = Blueprint('title_v1', __name__)
@@ -33,13 +32,31 @@ def get_titles():
 
     # Get filters
     owner_email_address = request.args.get('owner_email_address')
+    owner_identity = request.args.get('owner_identity')
+    address_house_name_number = request.args.get('address_house_name_number')
+    address_postcode = request.args.get('address_postcode')
 
     if owner_email_address:
         owner_result = Owner.query.filter_by(email=owner_email_address.lower()).first()
-        title_result = Title.query.filter_by(owner=owner_result).all()
+        title_result = Title.query.filter_by(owner=owner_result)
+    elif owner_identity:
+        owner_result = Owner.query.filter_by(identity=owner_identity).first()
+        title_result = Title.query.filter_by(owner=owner_result)
     else:
-        raise ApplicationError("'owner_email_address' is required.", "E001", 400)
+        raise ApplicationError("`owner_identity` or `owner_email_address` is required.", "E001", 400)
 
+    if address_house_name_number and address_postcode:
+        address_result = Address.query.filter_by(house_name_or_number=address_house_name_number)
+        address_result = address_result.filter_by(postcode=address_postcode)
+        address_result = address_result.first()
+        title_result = title_result.filter_by(address=address_result).limit(1)
+    elif bool(address_house_name_number) != bool(address_postcode):  # XOR
+        raise ApplicationError("`address_house_name_number` AND `address_postcode` are required", "E001", 400)
+
+    # Finalise db query
+    title_result = title_result.all()
+
+    # Build JSON
     for item in title_result:
         results.append(item.as_dict())
 
@@ -100,6 +117,109 @@ def update_title(title_number):
     # Modify title
     title.updated_at = datetime.datetime.utcnow()
 
+    # Modify restrictions
+    restrictions_search_list_dict = {}
+    restrictions_search_list = {}
+    for restriction in title.restrictions:
+        restriction_dict = restriction.as_dict()
+        restrictions_search_list_id = ''.join([
+            restriction_dict['restriction_type'],
+            restriction_dict['restriction_id'],
+            restriction_dict['date']
+        ])
+        restrictions_search_list_dict[restrictions_search_list_id] = restriction_dict
+        restrictions_search_list[restrictions_search_list_id] = restriction
+
+    for new_restriction in title_request['restrictions']:
+        if Restriction.from_dict(new_restriction, title_number).as_dict() in restrictions_search_list.values():
+            # It exists!
+            # Remove from search list
+            restrictions_search_list_id = ''.join([
+                new_restriction['restriction_type'],
+                new_restriction['restriction_id'],
+                new_restriction['date']
+            ])
+            del restrictions_search_list_dict[restrictions_search_list_id]
+            del restrictions_search_list[restrictions_search_list_id]
+        else:
+            charge = None
+            if 'charge' in new_restriction:
+                # Add new charge for restriction
+                charge = Charge(
+                    new_restriction['charge']['date'],
+                    new_restriction['charge']['lender'],
+                    new_restriction['charge']['amount'],
+                    new_restriction['charge']['amount_currency_code'],
+                    title_number
+                )
+
+                db.session.add(charge)
+
+            # Add new restriction
+            restriction = Restriction(
+                new_restriction['date'],
+                new_restriction['restriction_id'],
+                new_restriction['restriction_type'],
+                new_restriction['restriction_text'],
+                new_restriction['consenting_party'],
+                title_number
+            )
+            if 'charge' in new_restriction:
+                restriction.charge = charge
+
+            db.session.add(restriction)
+
+    # Remove old restrictions
+    for old_restriction in restrictions_search_list.values():
+        if old_restriction.charge:
+            title.charges.remove(old_restriction.charge)
+            db.session.delete(old_restriction.charge)
+        title.restrictions.remove(old_restriction)
+        db.session.delete(old_restriction)
+
+    # Modify charges
+    charges_search_list_dict = {}
+    charges_search_list = {}
+    for charge in title.charges:
+        if not charge.restriction:
+            charge_dict = charge.as_dict()
+            charges_search_list_id = ''.join([
+                charge_dict['lender_string'],
+                str(charge_dict['amount']),
+                charge_dict['amount_currency_code'],
+                charge_dict['date']
+            ])
+            charges_search_list_dict[charges_search_list_id] = charge_dict
+            charges_search_list[charges_search_list_id] = charge
+
+    for new_charge in title_request['charges']:
+        if Charge.from_dict(new_charge, title_number).as_dict() in charges_search_list.values():
+            # It exists!
+            # Remove from search list
+            charges_search_list_id = ''.join([
+                new_charge['lender_string'],
+                str(new_charge['amount']),
+                new_charge['amount_currency_code'],
+                new_charge['date']
+            ])
+            del charges_search_list_dict[charges_search_list_id]
+            del charges_search_list[charges_search_list_id]
+        else:
+            # Add new charge
+            charge = Charge(
+                new_charge['date'],
+                new_charge['lender'],
+                new_charge['amount'],
+                new_charge['amount_currency_code'],
+                title_number
+            )
+            db.session.add(charge)
+
+    # Remove old charges
+    for old_charge in charges_search_list.values():
+        title.charges.remove(old_charge)
+        db.session.delete(old_charge)
+
     # Modify owner
     # Check if the owner id has changed, and if so check whether the new owner id exists
     if not title_request['owner']['identity'] == title.owner.identity:
@@ -138,6 +258,7 @@ def update_title(title_number):
         db.session.add(owner_address)
 
         owner = title.owner
+        owner.identity = title_request['owner']['identity']
         owner.forename = title_request['owner']['first_name']
         owner.surname = title_request['owner']['last_name']
         owner.email = title_request['owner']['email_address']
@@ -147,6 +268,7 @@ def update_title(title_number):
         db.session.add(owner)
 
     db.session.add(title)
+
     try:
         db.session.commit()
     except exc.IntegrityError:
