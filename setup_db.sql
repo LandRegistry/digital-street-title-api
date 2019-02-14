@@ -13,15 +13,15 @@ VALUES	(1, '1', 'Digital Street', 'Bristol', 'Bristol', 'England', 'BS2 8EN'),
 ALTER SEQUENCE "address_address_id_seq" RESTART WITH 9;
 
 INSERT INTO "owner" (identity, forename, surname, email, phone, owner_type, address_id)
-VALUES	(1, 'Lisa', 'White', 'lisa.white@example.com', '07700900354', 'individual', 2),
-		(2, 'David', 'Jones', 'david.jones@example.com', '07700900827', 'individual', 3),
+VALUES	('1', 'Lisa', 'White', 'lisa.white@example.com', '+447700900354', 'individual', 2),
+		('2', 'David', 'Jones', 'david.jones@example.com', '+447700900827', 'individual', 3),
 
-		(3, 'Natasha', 'Powell', 'natasha.powell@example.com', '07700900027', 'individual', 4),
-		(4, 'Samuel', 'Barnes', 'samuel.barnes@example.com', '07700900534', 'individual', 5),
+		('3', 'Natasha', 'Powell', 'natasha.powell@example.com', '+447700900027', 'individual', 4),
+		('4', 'Samuel', 'Barnes', 'samuel.barnes@example.com', '+447700900534', 'individual', 5),
 
-		(5, 'Jim', 'Smith', 'jim.smith@example.com', '07700900815', 'individual', 6),
-		(6, 'Martin', 'Keats', 'martin.keats@example.com', '07700900133', 'individual', 7),
-		(7, 'Holly', 'Windsor', 'holly.windsor@example.com', '07700900970', 'individual', 8);
+		('5', 'Jim', 'Smith', 'jim.smith@example.com', '+447700900815', 'individual', 6),
+		('6', 'Martin', 'Keats', 'martin.keats@example.com', '+447700900133', 'individual', 7),
+		('7', 'Holly', 'Windsor', 'holly.windsor@example.com', '+447700900970', 'individual', 8);
 
 INSERT INTO "title" (title_number, owner_identity, address_id)
 VALUES	('ZQV888860', 1, 1),
@@ -60,3 +60,21 @@ VALUES (1, 'BX102', 'CBCR', 'O=Lender1,L=Plymouth,C=GB', 'RESTRICTION: No dispos
        (7, 'BX102', 'CBCR', 'O=Lender1,L=Plymouth,C=GB', 'RESTRICTION: No disposition of the registered estate by the proprietor of the registered estate is to be registered without a written consent signed by the proprietor for the time being of the Charge dated *CD* in favour of *CP* referred to in the Charges Register.', 'RTV237233', 7),
        (8, 'BX102', 'CBCR', 'O=Lender1,L=Plymouth,C=GB', 'RESTRICTION: No disposition of the registered estate by the proprietor of the registered estate is to be registered without a written consent signed by the proprietor for the time being of the Charge dated *CD* in favour of *CP* referred to in the Charges Register.', 'RTV237234', 8);
 ALTER SEQUENCE "restriction_restriction_id_seq" RESTART WITH 9;
+
+INSERT INTO price_history (title_number, price_amount, price_currency, date)
+VALUES ('ZQV888860', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('ZQV888861', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('ZQV888862', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('ZQV888863', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('RTV237231', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('RTV237232', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('RTV237233', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('RTV237234', 20000000, 'GBP', '2001-09-13 11:12:26.717044'),
+       ('ZQV888860', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('ZQV888861', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('ZQV888862', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('ZQV888863', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('RTV237231', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('RTV237232', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('RTV237233', 19000000, 'GBP', '2006-01-29 21:02:37.123456'),
+       ('RTV237234', 19000000, 'GBP', '2006-01-29 21:02:37.123456');

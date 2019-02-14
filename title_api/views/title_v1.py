@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import json
 from flask import Blueprint, Response, current_app, request
 from flask_negotiate import consumes, produces
@@ -6,7 +6,7 @@ from jsonschema import FormatChecker, RefResolver, ValidationError, validate
 from sqlalchemy import exc
 from title_api.exceptions import ApplicationError
 from title_api.extensions import db
-from title_api.models import Address, Owner, Title, Charge, Restriction
+from title_api.models import Address, Owner, Title, Charge, Restriction, PriceHistory
 
 # This is the blueprint object that gets registered into the app in blueprints.py.
 title_v1 = Blueprint('title_v1', __name__)
@@ -111,11 +111,11 @@ def update_title(title_number):
         raise ApplicationError('Title Number mismatch.', 'E004', 400)
 
     # Check that the title isn't locked
-    if title.lock and title.lock > datetime.datetime.utcnow():
+    if title.lock and title.lock > datetime.utcnow():
         raise ApplicationError("Title is locked until " + str(title.lock), "E403", 403)
 
     # Modify title
-    title.updated_at = datetime.datetime.utcnow()
+    title.updated_at = datetime.utcnow()
 
     # Modify restrictions
     restrictions_search_list_dict = {}
@@ -267,12 +267,22 @@ def update_title(title_number):
         owner.address = owner_address
         db.session.add(owner)
 
+    if title_request.get('price_history'):
+        for price_request in title_request['price_history']:
+            price = PriceHistory(
+                title_number,
+                price_request['amount'],
+                price_request['currency_code'],
+                price_request['date'] if price_request.get('date') is not None else datetime.utcnow()
+            )
+            db.session.merge(price)
+
     db.session.add(title)
 
     try:
         db.session.commit()
     except exc.IntegrityError:
-        raise ApplicationError("Owner's email address is already in use.", 'E003', 409)
+        raise ApplicationError("Failed to commit.", 'E003', 409)
 
     return Response(response=repr(title), mimetype='application/json', status=200)
 
@@ -288,10 +298,10 @@ def lock_title(title_number):
     if not title:
         raise ApplicationError("A title with the specified title number was not found.", 'E404', 404)
 
-    if title.lock and title.lock > datetime.datetime.utcnow():
+    if title.lock and title.lock > datetime.utcnow():
         raise ApplicationError("The title is already locked.", 'E409', 409)
 
-    title.lock = (datetime.datetime.utcnow() + datetime.timedelta(days=days_to_lock_title_for)).isoformat()
+    title.lock = (datetime.utcnow() + timedelta(days=days_to_lock_title_for)).isoformat()
 
     db.session.add(title)
     db.session.commit()

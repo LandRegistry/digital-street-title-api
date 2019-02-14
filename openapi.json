@@ -486,7 +486,8 @@
         "required": [
           "owner",
           "charges",
-          "restrictions"
+          "restrictions",
+          "price_history"
         ],
         "properties": {
           "owner": {
@@ -509,6 +510,12 @@
                   "$ref": "#/components/schemas/ChargeRestriction"
                 }
               ]
+            }
+          },
+          "price_history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceHistory"
             }
           }
         }
@@ -572,9 +579,8 @@
         ],
         "properties": {
           "identity": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Number to uniquely identify people across organisations"
+            "type": "string",
+            "description": "String to uniquely identify people across organisations"
           },
           "first_name": {
             "type": "string",
@@ -862,6 +868,29 @@
         "properties": {
           "charge": {
             "$ref": "#/components/schemas/Charge"
+          }
+        }
+      },
+      "PriceHistory": {
+        "required": [
+          "amount",
+          "currency_code"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "amount": {
+            "type": "integer",
+            "example": 12499999,
+            "description": "amount in the lowest denomination (i.e. £3.50 would be 350)"
+          },
+          "currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
           }
         }
       },

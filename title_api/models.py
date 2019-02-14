@@ -22,6 +22,7 @@ class Title(db.Model):
                             foreign_keys='Title.owner_identity', uselist=False, cascade="save-update")
     address = db.relationship("Address", backref=db.backref('title', lazy='dynamic'),
                               foreign_keys='Title.address_id', uselist=False, cascade="save-update")
+    price_history = db.relationship("PriceHistory", back_populates="title", cascade="all, delete-orphan")
     restrictions = db.relationship("Restriction", back_populates="title", cascade="all, delete-orphan")
     charges = db.relationship("Charge", back_populates="title", cascade="all, delete-orphan")
 
@@ -47,6 +48,8 @@ class Title(db.Model):
         for restriction in self.restrictions:
             restriction_consenting_parties_dict.append(X500Name.from_string(restriction.consenting_party).as_dict())
 
+        price_history_dict = [r.as_dict() for r in self.price_history]
+
         return {
             "title_number": self.title_number,
             "owner": self.owner.as_dict(),
@@ -54,9 +57,44 @@ class Title(db.Model):
             "restrictions": restrictions_dict,
             "charges": charges_dict,
             "restriction_consenting_parties": restriction_consenting_parties_dict,
+            "price_history": price_history_dict,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat() if self.updated_at else self.updated_at,
             "locked_at": self.lock.isoformat() if self.lock else self.lock
+        }
+
+
+class PriceHistory(db.Model):
+    __tablename__ = 'price_history'
+
+    # Fields
+    title_number = db.Column(db.String, db.ForeignKey('title.title_number'), primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, server_default=func.now(), primary_key=True)
+    price_amount = db.Column(db.Integer, nullable=False)
+    price_currency = db.Column(db.String, nullable=False)
+
+    # Relationships
+    title = db.relationship("Title", back_populates="price_history")
+
+    # Methods
+    def __init__(self, title_number, price_amount, price_currency, date):
+        self.title_number = title_number.upper()
+        self.price_amount = price_amount
+        self.price_currency = price_currency
+        if date:
+            self.date = date
+        else:
+            self.date = datetime.utcnow()
+
+    def __repr__(self):
+        return json.dumps(self.as_dict(), sort_keys=True, separators=(',', ':'))
+
+    def as_dict(self):
+        return {
+            "amount": self.price_amount,
+            "currency_code": self.price_currency,
+            "date_iso": self.date.isoformat(),
+            "date": int(self.date.strftime('%s'))
         }
 
 
@@ -64,7 +102,7 @@ class Owner(db.Model):
     __tablename__ = 'owner'
 
     # Fields
-    identity = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    identity = db.Column(db.String, primary_key=True)
     forename = db.Column(db.String, nullable=False)
     surname = db.Column(db.String, nullable=False)
     email = db.Column(db.String, nullable=False, unique=True, index=True)
