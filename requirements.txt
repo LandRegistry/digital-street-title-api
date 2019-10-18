@@ -30,4 +30,4 @@ requests==2.21.0
 six==1.12.0               # via python-dateutil
 sqlalchemy==1.2.17        # via alembic, flask-sqlalchemy
 urllib3==1.24.1           # via requests
-werkzeug==0.14.1          # via flask
+werkzeug==0.15.3          # via flask
