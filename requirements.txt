@@ -4,30 +4,69 @@
 #
 #    pip-compile --output-file requirements.txt requirements.in
 #
-alembic==1.0.7            # via flask-migrate
-certifi==2018.11.29       # via requests
-chardet==3.0.4            # via requests
-click==7.0                # via flask
+alembic==1.0.7
+    # via flask-migrate
+certifi==2018.11.29
+    # via requests
+chardet==3.0.4
+    # via requests
+click==7.0
+    # via flask
 flask-logconfig==0.4.2
+    # via -r requirements.in
 flask-migrate==2.3.1
+    # via -r requirements.in
 flask-negotiate==0.1.0
+    # via -r requirements.in
 flask-script==2.0.6
+    # via -r requirements.in
 flask-sqlalchemy==2.3.2
+    # via
+    #   -r requirements.in
+    #   flask-migrate
 flask==1.0.2
-idna==2.8                 # via requests
-itsdangerous==1.1.0       # via flask
-jinja2==2.10              # via flask
+    # via
+    #   -r requirements.in
+    #   flask-logconfig
+    #   flask-migrate
+    #   flask-negotiate
+    #   flask-script
+    #   flask-sqlalchemy
+idna==2.8
+    # via requests
+itsdangerous==1.1.0
+    # via flask
+jinja2==2.11.3
+    # via flask
 jsonschema==2.6.0
-logconfig==0.4.0          # via flask-logconfig
-logutils==0.3.5           # via logconfig
-mako==1.0.7               # via alembic
-markupsafe==1.1.0         # via jinja2, mako
+    # via -r requirements.in
+logconfig==0.4.0
+    # via flask-logconfig
+logutils==0.3.5
+    # via logconfig
+mako==1.0.7
+    # via alembic
+markupsafe==1.1.0
+    # via
+    #   jinja2
+    #   mako
 psycopg2==2.7.7
-python-dateutil==2.8.0    # via alembic
-python-editor==1.0.4      # via alembic
-pyyaml==3.13              # via logconfig
+    # via -r requirements.in
+python-dateutil==2.8.0
+    # via alembic
+python-editor==1.0.4
+    # via alembic
+pyyaml==3.13
+    # via logconfig
 requests==2.21.0
-six==1.12.0               # via python-dateutil
-sqlalchemy==1.2.17        # via alembic, flask-sqlalchemy
-urllib3==1.24.1           # via requests
-werkzeug==0.14.1          # via flask
+    # via -r requirements.in
+six==1.12.0
+    # via python-dateutil
+sqlalchemy==1.2.17
+    # via
+    #   alembic
+    #   flask-sqlalchemy
+urllib3==1.24.1
+    # via requests
+werkzeug==0.14.1
+    # via flask
